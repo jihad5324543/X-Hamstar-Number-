@@ -1,9 +1,28 @@
 import asyncio
 import random
 import re
+import os
+from threading import Thread
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
+# --- UptimeRobot support (Dummy Web Server) ---
+web_app = Flask('')
+
+@web_app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 8080))
+    web_app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.start()
+
+# --- Bot Configuration ---
 BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"
 ADMIN_ID = 5747820322
 
@@ -15,14 +34,14 @@ def replace_mask(text: str) -> str:
     return re.sub(r'❌+', random_digits, text)
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⚙️ Admin Control Panel Active!")
+    await update.message.reply_text("⚡ **Admin Control Panel Active!** 👑", parse_mode="Markdown")
 
 async def stop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global is_running
     if update.effective_user.id != ADMIN_ID:
         return
     is_running = False
-    await update.message.reply_text("🛑 OTP Generation Stopped!")
+    await update.message.reply_text("🛑 **OTP Generation Stopped!** 🛑", parse_mode="Markdown")
 
 async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global is_running
@@ -70,13 +89,14 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
         service_logo = "✈️"
 
     is_running = True
-    await update.message.reply_text(f"🚀 Broadcast Started! Interval: {delay_seconds}s")
+    await update.message.reply_text(f"🚀 **Broadcast Started!**\n⏱️ **Interval:** `{delay_seconds}s`", parse_mode="Markdown")
 
+    # কাস্টম ইমোজি সহ আকর্ষণীয় বাটন
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 Copy Your Key", callback_data="copy_key")],
+        [InlineKeyboardButton("🔑 𝙲𝚘𝚙𝚢 𝚈𝚘𝚞𝚛 𝙺𝚎𝚢 💎", callback_data="copy_key")],
         [
-            InlineKeyboardButton("🤖 Get Number 2", url="https://t.me/YOUR_GET_NUMBER_LINK"),
-            InlineKeyboardButton("📢 Support GP", url="https://t.me/YOUR_DEVELOPER_LINK")
+            InlineKeyboardButton("🤖 𝙶𝚎𝚝 𝙽𝚞𝚖𝚋𝚎𝚛 𝟸 ⚡", url="https://t.me/YOUR_GET_NUMBER_LINK"),
+            InlineKeyboardButton("📢 𝚂𝚞𝚙𝚙𝚘𝚛𝚝 𝙶𝙿 ✨", url="https://t.me/YOUR_DEVELOPER_LINK")
         ]
     ])
 
@@ -91,9 +111,10 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
         otp_code = random.randint(100000, 999999)
 
+        # প্রিমিয়াম আউটপুট ফরম্যাট
         message_body = (
-            f"{formatted_line} {service_logo}\n"
-            f"🔑 **Code:** `{otp_code}`"
+            f"🔥 **{formatted_line}** {service_logo}\n"
+            f"🔑 **Code:** `{otp_code}` ☑️"
         )
 
         await context.bot.send_message(
@@ -106,6 +127,7 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await asyncio.sleep(delay_seconds)
 
 if __name__ == "__main__":
+    keep_alive()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start_cmd))
     app.add_handler(CommandHandler("stop", stop_cmd))
