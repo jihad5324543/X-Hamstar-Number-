@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import os
 from threading import Thread
 from flask import Flask
@@ -23,7 +24,7 @@ def keep_alive():
     t.start()
 
 # --- Bot Configuration ---
-BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"  # আপনার বট টোকেন দিন
+BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"  # আপনার আসল বট টোকেন দিন
 ADMIN_ID = 5747820322              # আপনার টেলিগ্রাম আইডি দিন
 
 active_tasks = {}
@@ -49,21 +50,28 @@ async def copy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def run_otp_generator(chat_id: int, full_pattern: str, total_count: int, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
     active_tasks[chat_id] = True
     
+    # WS এবং TG লোগো হ্যান্ডলিং
+    formatted_pattern = full_pattern
+    if " WS " in f" {formatted_pattern} " or " ws " in f" {formatted_pattern} ":
+        formatted_pattern = re.sub(r'\b(WS|ws)\b', '🟢', formatted_pattern)
+    elif " TG " in f" {formatted_pattern} " or " tg " in f" {formatted_pattern} ":
+        formatted_pattern = re.sub(r'\b(TG|tg)\b', '✈️', formatted_pattern)
+
     for i in range(total_count):
         if not active_tasks.get(chat_id, False):
             break
 
-        # ইনপুট প্যাটার্নের শেষের ৩ বা ৪ ডিজিট র্যান্ডমলি চেঞ্জ করা (❌ অক্ষত থাকবে)
-        formatted_line = full_pattern
-        if len(formatted_line) > 4:
+        # ❌ অক্ষত রেখে শেষের ৪ ডিজিট র্যান্ডম চেঞ্জ করা
+        final_line = formatted_pattern
+        if len(final_line) > 4:
             random_last = "".join([str(random.randint(0, 9)) for _ in range(4)])
-            formatted_line = formatted_line[:-4] + random_last
+            final_line = final_line[:-4] + random_last
 
         otp_code = str(random.randint(100000, 999999))
 
-        # মেসেজ বডি (আউটপুটে ❌ টা মাঝখানে সুন্দরভাবে থাকবে)
+        # প্রিমিয়াম আউটপুট লেআউট
         message_body = (
-            f"• {formatted_line}\n"
+            f"• {final_line}\n"
             f"🔑 **OTP Code:** `{otp_code}`"
         )
 
