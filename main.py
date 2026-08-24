@@ -1,6 +1,5 @@
 import asyncio
 import random
-import re
 import os
 from threading import Thread
 from flask import Flask
@@ -24,33 +23,79 @@ def keep_alive():
     t.start()
 
 # --- Bot Configuration ---
-BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"
-ADMIN_ID = 5747820322  # আপনার আসল টেলিগ্রাম আইডি দিন
+BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"  # আপনার বট টোকেন দিন
+ADMIN_ID = 5747820322              # আপনার টেলিগ্রাম আইডি দিন
 
-is_running = False
-
-def replace_mask(text: str) -> str:
-    def random_digits(match):
-        return "".join([str(random.randint(0, 9)) for _ in match.group(0)])
-    return re.sub(r'❌+', random_digits, text)
+active_tasks = {}
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⚙️ **SECRET OTP BOT Active!**", parse_mode="Markdown")
 
 async def stop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global is_running
     if update.effective_user.id != ADMIN_ID:
         return
-    is_running = False
-    await update.message.reply_text("🛑 **OTP Loop Stopped!**", parse_mode="Markdown")
+    chat_id = update.effective_chat.id
+    if chat_id in active_tasks:
+        active_tasks[chat_id] = False
+        await update.message.reply_text("🛑 **All Running OTP Tasks Stopped!**", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("ℹ️ No active OTP task to stop.")
 
 async def copy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     code = query.data.split("_")[-1]
-    await query.answer(text=f"🔑 Copied Code: {code}", show_alert=True)
+    await query.answer(text=f"🔑 Copied OTP: {code}", show_alert=True)
+
+async def run_otp_generator(chat_id: int, full_pattern: str, total_count: int, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
+    active_tasks[chat_id] = True
+    
+    for i in range(total_count):
+        if not active_tasks.get(chat_id, False):
+            break
+
+        # ইনপুট প্যাটার্নের শেষের ৩ বা ৪ ডিজিট র্যান্ডমলি চেঞ্জ করা (❌ অক্ষত থাকবে)
+        formatted_line = full_pattern
+        if len(formatted_line) > 4:
+            random_last = "".join([str(random.randint(0, 9)) for _ in range(4)])
+            formatted_line = formatted_line[:-4] + random_last
+
+        otp_code = str(random.randint(100000, 999999))
+
+        # মেসেজ বডি (আউটপুটে ❌ টা মাঝখানে সুন্দরভাবে থাকবে)
+        message_body = (
+            f"• {formatted_line}\n"
+            f"🔑 **OTP Code:** `{otp_code}`"
+        )
+
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔑  𝙲𝚘𝚙𝚢 𝚈𝚘𝚞𝚛 𝙺𝚎𝚢", callback_data=f"copy_{otp_code}")],
+            [
+                InlineKeyboardButton("🤖 Get Number", url="https://t.me/YOUR_GET_NUMBER_LINK"),
+                InlineKeyboardButton("📢 Support GP", url="https://t.me/YOUR_DEVELOPER_LINK")
+            ]
+        ])
+
+        sent = False
+        while not sent and active_tasks.get(chat_id, False):
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=message_body,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                sent = True
+            except RetryAfter as e:
+                await asyncio.sleep(e.retry_after + 1)
+            except Exception as e:
+                await asyncio.sleep(1)
+                sent = True
+
+        await asyncio.sleep(delay_seconds)
+        
+    active_tasks[chat_id] = False
 
 async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global is_running
     if update.effective_user.id != ADMIN_ID:
         return
 
@@ -87,52 +132,21 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     full_pattern = " ".join(parts)
-    is_running = True
     
-    await update.message.reply_text(f"🚀 **Target:** `{total_count}` | **Interval:** `{delay_seconds}s`", parse_mode="Markdown")
+    await update.message.reply_text(
+        f"🚀 **Task Started!**\n📊 **Count:** `{total_count}` | ⏱️ **Delay:** `{delay_seconds}s`", 
+        parse_mode="Markdown"
+    )
 
-    for i in range(total_count):
-        if not is_running:
-            break
-
-        # ৪/৫ টি স্থির সংখ্যা রেখে বাকি ❌ অংশ র্যান্ডম করা
-        formatted_line = replace_mask(full_pattern)
-        if len(formatted_line) > 4:
-            random_last = "".join([str(random.randint(0, 9)) for _ in range(4)])
-            formatted_line = formatted_line[:-4] + random_last
-
-        otp_code = random.randint(100000, 999999)
-
-        # স্ক্রিনশটের মতো হুবহু লাইন লেআউট
-        message_body = f"• {formatted_line}\n"
-
-        # কাস্টম বাটন লেআউট
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔑  𝙲𝚘𝚙𝚢 𝚈𝚘𝚞𝚛 𝙺𝚎𝚢", callback_data=f"copy_{otp_code}")],
-            [
-                InlineKeyboardButton("🤖 Get Number", url="https://t.me/YOUR_GET_NUMBER_LINK"),
-                InlineKeyboardButton("📢 Support GP", url="https://t.me/YOUR_DEVELOPER_LINK")
-            ]
-        ])
-
-        # টেলিগ্রাম ফ্লাড লিমিট হ্যান্ডলিং লুপ
-        sent = False
-        while not sent and is_running:
-            try:
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=message_body,
-                    reply_markup=keyboard
-                )
-                sent = True
-            except RetryAfter as e:
-                # টেলিগ্রাম ব্লক দিলে অটো ওয়েট করবে কিন্তু বটের গণনা থামবে না
-                await asyncio.sleep(e.retry_after + 1)
-            except Exception as e:
-                await asyncio.sleep(1)
-                sent = True
-
-        await asyncio.sleep(delay_seconds)
+    asyncio.create_task(
+        run_otp_generator(
+            chat_id=update.effective_chat.id, 
+            full_pattern=full_pattern, 
+            total_count=total_count, 
+            delay_seconds=delay_seconds, 
+            context=context
+        )
+    )
 
 if __name__ == "__main__":
     keep_alive()
