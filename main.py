@@ -27,8 +27,12 @@ def keep_alive():
 BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"
 ADMIN_ID = 5747820322
 
+# প্রিমিয়াম ইমোজি আইডিসমূহ
 WS_EMOJI_ID = "6298323188849838091"
 TG_EMOJI_ID = "6296218646284863141"
+PY_EMOJI_ID = "6258109564676220200"
+FB_EMOJI_ID = "6091599390621834528"
+INT_EMOJI_ID = "6258233865324732516"
 
 is_running = True
 
@@ -51,24 +55,46 @@ async def copy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def run_single_task(chat_id: int, full_pattern: str, total_count: int, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
     global is_running
     
-    is_ws = False
-    is_tg = False
-    
+    platform = "default"
     pattern_lower = full_pattern.lower()
-    if "ws" in pattern_lower or "whatsapp" in pattern_lower:
-        is_ws = True
-    elif "tg" in pattern_lower or "telegram" in pattern_lower:
-        is_tg = True
 
-    # মেসেজ বডির জন্য Premium Emoji
-    ws_emoji_html = f'<tg-emoji emoji-id="{WS_EMOJI_ID}">🟢</tg-emoji>'
-    tg_emoji_html = f'<tg-emoji emoji-id="{TG_EMOJI_ID}">✈️</tg-emoji>'
+    # প্ল্যাটফর্ম ডিটেকশন
+    if re.search(r'\b(ws|whatsapp)\b', pattern_lower):
+        platform = "ws"
+    elif re.search(r'\b(tg|telegram)\b', pattern_lower):
+        platform = "tg"
+    elif re.search(r'\b(py|paypal)\b', pattern_lower):
+        platform = "py"
+    elif re.search(r'\b(fb|facebook|facebookl)\b', pattern_lower):
+        platform = "fb"
+    elif re.search(r'\b(int|instagram)\b', pattern_lower):
+        platform = "int"
 
+    # ইমোজি ও বাটন টেক্সট সেটআপ
     formatted_text = full_pattern
-    if is_ws:
-        formatted_text = re.sub(r'\b(ws|whatsapp)\b', ws_emoji_html, formatted_text, flags=re.IGNORECASE)
-    elif is_tg:
-        formatted_text = re.sub(r'\b(tg|telegram)\b', tg_emoji_html, formatted_text, flags=re.IGNORECASE)
+
+    if platform == "ws":
+        ws_html = f'<tg-emoji emoji-id="{WS_EMOJI_ID}">🟢</tg-emoji>'
+        formatted_text = re.sub(r'\b(ws|whatsapp)\b', ws_html, formatted_text, flags=re.IGNORECASE)
+        btn_text = "📋 Copy WhatsApp"
+    elif platform == "tg":
+        tg_html = f'<tg-emoji emoji-id="{TG_EMOJI_ID}">✈️</tg-emoji>'
+        formatted_text = re.sub(r'\b(tg|telegram)\b', tg_html, formatted_text, flags=re.IGNORECASE)
+        btn_text = "📋 Copy Telegram"
+    elif platform == "py":
+        py_html = f'<tg-emoji emoji-id="{PY_EMOJI_ID}">🅿️</tg-emoji>'
+        formatted_text = re.sub(r'\b(py|paypal)\b', py_html, formatted_text, flags=re.IGNORECASE)
+        btn_text = "📋 Copy PayPal"
+    elif platform == "fb":
+        fb_html = f'<tg-emoji emoji-id="{FB_EMOJI_ID}">🟦</tg-emoji>'
+        formatted_text = re.sub(r'\b(fb|facebook|facebookl)\b', fb_html, formatted_text, flags=re.IGNORECASE)
+        btn_text = "📋 Copy Facebook"
+    elif platform == "int":
+        int_html = f'<tg-emoji emoji-id="{INT_EMOJI_ID}">📸</tg-emoji>'
+        formatted_text = re.sub(r'\b(int|instagram)\b', int_html, formatted_text, flags=re.IGNORECASE)
+        btn_text = "📋 Copy Instagram"
+    else:
+        btn_text = "📋 Copy Code"
 
     for _ in range(total_count):
         if not is_running:
@@ -76,14 +102,6 @@ async def run_single_task(chat_id: int, full_pattern: str, total_count: int, del
 
         otp_code = str(random.randint(100000, 999999))
         message_body = f"<b>{formatted_text}</b>"
-
-        # বাটনের টেক্সট (ইমোজি ছাড়া পরিষ্কার ফরম্যাট)
-        if is_ws:
-            btn_text = "📋 Copy WhatsApp"
-        elif is_tg:
-            btn_text = "📋 Copy Telegram"
-        else:
-            btn_text = "📋 Copy Code"
 
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(btn_text, callback_data=f"copy_{otp_code}")]
@@ -125,7 +143,14 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
     last_part = parts[-1].lower()
     
+    # টাইমিং হ্যান্ডলিং (s / m / c)
     if last_part.endswith("s"):
+        try:
+            delay_seconds = float(last_part[:-1])
+            parts.pop()
+        except ValueError:
+            pass
+    elif last_part.endswith("c"):
         try:
             delay_seconds = float(last_part[:-1])
             parts.pop()
