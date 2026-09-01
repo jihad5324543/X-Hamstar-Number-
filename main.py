@@ -24,134 +24,158 @@ def keep_alive():
     t.start()
 
 # --- Bot Configuration ---
-BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"  # আপনার আসল বট টোকেন দিন
-ADMIN_ID = 5747820322              # আপনার টেলিগ্রাম আইডি দিন
+BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"  # আপনার বট টোকেন
+ADMIN_ID = 5747820322              # আপনার টেলিগ্রাম আইডি
 
-active_tasks = {}
+# প্রিমিয়াম ইমোজি আইডি সেটআপ
+WS_EMOJI_ID = "6298323188849838091"
+TG_EMOJI_ID = "6296218646284863141"
+
+# গ্লোবাল স্টেট
+is_running = True
+active_tasks_count = 0
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⚙️ **SECRET OTP BOT Active!**", parse_mode="Markdown")
+    await update.message.reply_text("⚙️ **SECRET OTP BOT Active!**", parse_mode="HTML")
 
 async def stop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global is_running
     if update.effective_user.id != ADMIN_ID:
         return
-    chat_id = update.effective_chat.id
-    if chat_id in active_tasks:
-        active_tasks[chat_id] = False
-        await update.message.reply_text("🛑 **All Running OTP Tasks Stopped!**", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("ℹ️ No active OTP task to stop.")
+    
+    is_running = False
+    await update.message.reply_text("🛑 <b>All Running OTP Tasks Stopped!</b>", parse_mode="HTML")
 
 async def copy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     code = query.data.split("_")[-1]
-    await query.answer(text=f"🔑 Copied OTP: {code}", show_alert=True)
+    # ক্লিক করলে পপ-আপ মেসেজে কোড দেখাবে
+    await query.answer(text=f"🔑 OTP Code: {code}", show_alert=True)
 
-async def run_otp_generator(chat_id: int, full_pattern: str, total_count: int, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
-    active_tasks[chat_id] = True
+async def run_single_task(chat_id: int, full_pattern: str, total_count: int, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
+    global is_running, active_tasks_count
+    active_tasks_count += 1
     
-    # WS এবং TG লোগো হ্যান্ডলিং
-    formatted_pattern = full_pattern
-    if " WS " in f" {formatted_pattern} " or " ws " in f" {formatted_pattern} ":
-        formatted_pattern = re.sub(r'\b(WS|ws)\b', '🟢', formatted_pattern)
-    elif " TG " in f" {formatted_pattern} " or " tg " in f" {formatted_pattern} ":
-        formatted_pattern = re.sub(r'\b(TG|tg)\b', '✈️', formatted_pattern)
+    # টাইপ ও প্রিমিয়াম ইমোজি সিলেক্ট করা
+    is_ws = False
+    is_tg = False
+    
+    pattern_lower = full_pattern.lower()
+    if "ws" in pattern_lower or "whatsapp" in pattern_lower:
+        is_ws = True
+    elif "tg" in pattern_lower or "telegram" in pattern_lower:
+        is_tg = True
 
-    for i in range(total_count):
-        if not active_tasks.get(chat_id, False):
+    # প্রিমিয়াম ইমোজি মেসেজ টেক্সটের জন্য
+    ws_emoji_html = f'<tg-emoji emoji-id="{WS_EMOJI_ID}">🟢</tg-emoji>'
+    tg_emoji_html = f'<tg-emoji emoji-id="{TG_EMOJI_ID}">✈️</tg-emoji>'
+
+    formatted_text = full_pattern
+    if is_ws:
+        formatted_text = re.sub(r'\b(ws|whatsapp)\b', ws_emoji_html, formatted_text, flags=re.IGNORECASE)
+    elif is_tg:
+        formatted_text = re.sub(r'\b(tg|telegram)\b', tg_emoji_html, formatted_text, flags=re.IGNORECASE)
+
+    for _ in range(total_count):
+        if not is_running:
             break
 
-        # ❌ অক্ষত রেখে শেষের ৪ ডিজিট র্যান্ডম চেঞ্জ করা
-        final_line = formatted_pattern
-        if len(final_line) > 4:
-            random_last = "".join([str(random.randint(0, 9)) for _ in range(4)])
-            final_line = final_line[:-4] + random_last
-
+        # ৬ ডিজিট র‍্যান্ডম OTP কোড জেনারেট
         otp_code = str(random.randint(100000, 999999))
 
-        # প্রিমিয়াম আউটপুট লেআউট
-        message_body = (
-            f"• {final_line}\n"
-            f"🔑 **OTP Code:** `{otp_code}`"
-        )
+        # ছবির মতো ক্লিন আউটপুট (কোনো বাড়তি লেখা ছাড়া)
+        message_body = f"<b>{formatted_text}</b>"
+
+        # বাটন লজিক (ইমোজি সহ Copy WhatsApp / Copy Telegram)
+        if is_ws:
+            btn_text = "🟢 📋 Copy WhatsApp"
+        elif is_tg:
+            btn_text = "✈️ 📋 Copy Telegram"
+        else:
+            btn_text = "📋 Copy Code"
 
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔑  𝙲𝚘𝚙𝚢 𝚈𝚘𝚞𝚛 𝙺𝚎𝚢", callback_data=f"copy_{otp_code}")],
-            [
-                InlineKeyboardButton("🤖 Get Number", url="https://t.me/YOUR_GET_NUMBER_LINK"),
-                InlineKeyboardButton("📢 Support GP", url="https://t.me/YOUR_DEVELOPER_LINK")
-            ]
+            [InlineKeyboardButton(btn_text, callback_data=f"copy_{otp_code}")]
         ])
 
         sent = False
-        while not sent and active_tasks.get(chat_id, False):
+        while not sent and is_running:
             try:
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=message_body,
-                    parse_mode="Markdown",
+                    parse_mode="HTML",
                     reply_markup=keyboard
                 )
                 sent = True
             except RetryAfter as e:
                 await asyncio.sleep(e.retry_after + 1)
-            except Exception as e:
+            except Exception:
                 await asyncio.sleep(1)
                 sent = True
 
         await asyncio.sleep(delay_seconds)
-        
-    active_tasks[chat_id] = False
+
+    active_tasks_count -= 1
 
 async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global is_running
     if update.effective_user.id != ADMIN_ID:
         return
 
+    # নতুন কমান্ড আসলে રનিং স্ট্যাটাস True করা
+    is_running = True
     text = update.message.text.strip()
     parts = text.split()
 
-    if len(parts) < 4:
+    if len(parts) < 2:
         return
 
     delay_seconds = 1.0
-    time_part = parts[-1].lower()
-    
-    if time_part.endswith("s"):
+    total_count = 100
+
+    # টাইমিং এবং কাউন্ট পার্সিং (যেমন: 500cd 1s)
+    last_part = parts[-1].lower()
+    second_last = parts[-2].lower() if len(parts) > 2 else ""
+
+    parsed_delay = False
+    parsed_count = False
+
+    # Delay Check (s / m)
+    if last_part.endswith("s"):
         try:
-            delay_seconds = float(time_part[:-1])
+            delay_seconds = float(last_part[:-1])
             parts.pop()
+            parsed_delay = True
         except ValueError:
             pass
-    elif time_part.endswith("m"):
+    elif last_part.endswith("m"):
         try:
-            delay_seconds = float(time_part[:-1]) * 60
+            delay_seconds = float(last_part[:-1]) * 60
             parts.pop()
+            parsed_delay = True
         except ValueError:
             pass
 
-    count_part = parts[-1].lower()
-    if not count_part.endswith("cd"):
-        return
-
-    try:
-        total_count = int(count_part.replace("cd", ""))
-        parts.pop()
-    except ValueError:
-        return
+    # Count Check (cd)
+    check_count_part = parts[-1].lower()
+    if check_count_part.endswith("cd"):
+        try:
+            total_count = int(check_count_part.replace("cd", ""))
+            parts.pop()
+            parsed_count = True
+        except ValueError:
+            pass
 
     full_pattern = " ".join(parts)
-    
-    await update.message.reply_text(
-        f"🚀 **Task Started!**\n📊 **Count:** `{total_count}` | ⏱️ **Delay:** `{delay_seconds}s`", 
-        parse_mode="Markdown"
-    )
 
+    # ব্যাকগ্রাউন্ড টাস্ক চালু করা (আনলিমিটেড মিক্স সাপোর্ট)
     asyncio.create_task(
-        run_otp_generator(
-            chat_id=update.effective_chat.id, 
-            full_pattern=full_pattern, 
-            total_count=total_count, 
-            delay_seconds=delay_seconds, 
+        run_single_task(
+            chat_id=update.effective_chat.id,
+            full_pattern=full_pattern,
+            total_count=total_count,
+            delay_seconds=delay_seconds,
             context=context
         )
     )
