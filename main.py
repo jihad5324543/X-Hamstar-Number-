@@ -27,7 +27,6 @@ def keep_alive():
 BOT_TOKEN = "8343790496:AAEh8SEmaLC-DYJ5A_ZIM1WjsHb2-lz2F0w"
 ADMIN_ID = 5747820322
 
-# প্রিমিয়াম ইমোজি আইডি (মেসেজ বডির জন্য)
 WS_EMOJI_ID = "6298323188849838091"
 TG_EMOJI_ID = "6296218646284863141"
 
@@ -61,6 +60,7 @@ async def run_single_task(chat_id: int, full_pattern: str, total_count: int, del
     elif "tg" in pattern_lower or "telegram" in pattern_lower:
         is_tg = True
 
+    # মেসেজ বডির জন্য Premium Emoji
     ws_emoji_html = f'<tg-emoji emoji-id="{WS_EMOJI_ID}">🟢</tg-emoji>'
     tg_emoji_html = f'<tg-emoji emoji-id="{TG_EMOJI_ID}">✈️</tg-emoji>'
 
@@ -77,11 +77,11 @@ async def run_single_task(chat_id: int, full_pattern: str, total_count: int, del
         otp_code = str(random.randint(100000, 999999))
         message_body = f"<b>{formatted_text}</b>"
 
-        # বাটনে লোগো ও ইউনিকোড ইমোজি সলিড ফরম্যাটে সেট করা
+        # বাটনের টেক্সট (ইমোজি ছাড়া পরিষ্কার ফরম্যাট)
         if is_ws:
-            btn_text = "🟢 📋 Copy WhatsApp"
+            btn_text = "📋 Copy WhatsApp"
         elif is_tg:
-            btn_text = "✈️ 📋 Copy Telegram"
+            btn_text = "📋 Copy Telegram"
         else:
             btn_text = "📋 Copy Code"
 
@@ -97,7 +97,7 @@ async def run_single_task(chat_id: int, full_pattern: str, total_count: int, del
                     text=message_body,
                     parse_mode="HTML",
                     reply_markup=keyboard,
-                    disable_web_page_preview=True # প্রিভিউ বন্ধ করা হলো
+                    disable_web_page_preview=True
                 )
                 sent = True
             except RetryAfter as e:
