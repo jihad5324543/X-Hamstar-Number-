@@ -32,7 +32,7 @@ from TTS.api import TTS
 
 load_dotenv()
 
-BOT_TOKEN = "8843354006:AAHRCiMELS7nMW1WxAooRopbIDjEoInuGu4"  # এখানে নিজের নতুন Telegram bot token বসাও
+BOT_TOKEN = "8634925900:AAH_lpHaM0nxd3IaUMAwaaxxjTZdzXqddlw"  # এখানে নিজের নতুন Telegram bot token বসাও
 WORK_DIR = Path(os.getenv("WORK_DIR", "./data"))
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 XTTS_MODEL = os.getenv(
