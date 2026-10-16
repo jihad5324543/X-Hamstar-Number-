@@ -18,6 +18,5 @@ RUN python3.11 -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
 COPY main.py .
-COPY .env.example .
 
 CMD ["python3.11", "main.py"]
