@@ -10,7 +10,7 @@ from aiogram.enums import ChatAction
 
 # Security: do not paste an exposed token here.
 # Set BOT_TOKEN as an environment variable using a NEW token from @BotFather.
-BOT_TOKEN = os.getenv("BOT_TOKEN", "PASTE_NEW_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8843354006:AAHRCiMELS7nMW1WxAooRopbIDjEoInuGu4")
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
