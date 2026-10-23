@@ -16,7 +16,7 @@ System requirement:
     (If the host does not permit installing Tesseract, this script's OCR won't work.)
 
 Environment variable:
-    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+    TELEGRAM_BOT_TOKEN=8948863772:AAHW6n0rRGaiKUgZOhVQl97irg0HyzzJ-RE
 
 Run:
     python main.py
