@@ -52,8 +52,8 @@ def keep_alive():
 # --- End Flask Keep Alive ---
 
 # --- Configuration ---
-TOKEN = "PASTE_YOUR_TELEGRAM_BOT_TOKEN_HERE"
-OWNER_ID = 123456789  # Replace with your Telegram numeric user ID
+TOKEN = "8757100841:AAFMh0uVPpP3j3HI4KwWK8fvQxBEwfueKiY"
+OWNER_ID = 5747820322  # Replace with your Telegram numeric user ID
 ADMIN_ID = OWNER_ID  # Set another numeric ID here if needed
 YOUR_USERNAME = "@shiyam7444"
 UPDATE_CHANNEL = "https://t.me/shiyam744"
